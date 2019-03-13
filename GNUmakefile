@@ -139,7 +139,7 @@ include boot/Makefrag
 include kern/Makefrag
 
 
-QEMUOPTS = -drive file=$(OBJDIR)/kern/kernel.img,index=0,media=disk,format=raw -serial mon:stdio -gdb tcp::$(GDBPORT)
+QEMUOPTS = -drive file=$(OBJDIR)/kern/kernel.img,index=0,media=disk,format=raw -serial mon:stdio -s -p $(GDBPORT)
 QEMUOPTS += $(shell if $(QEMU) -nographic -help | grep -q '^-D '; then echo '-D qemu.log'; fi)
 IMAGES = $(OBJDIR)/kern/kernel.img
 QEMUOPTS += $(QEMUEXTRA)
@@ -148,7 +148,7 @@ QEMUOPTS += $(QEMUEXTRA)
 	sed "s/localhost:1234/localhost:$(GDBPORT)/" < $^ > $@
 
 gdb:
-	gdb -n -x .gdbinit
+	/usr/local/bin/i386-jos-elfgdb -n -x .gdbinit
 
 pre-qemu: .gdbinit
 
@@ -169,7 +169,6 @@ qemu-gdb: $(IMAGES) pre-qemu
 
 qemu-nox-gdb: $(IMAGES) pre-qemu
 	@echo "***"
-	@echo "*** Now run 'make gdb'." 1>&2
 	@echo "***"
 	$(QEMU) -nographic $(QEMUOPTS) -S
 
