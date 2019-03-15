@@ -24,6 +24,7 @@ struct Command {
 static struct Command commands[] = {
 	{ "help", "Display this list of commands", mon_help },
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
+	{ "backtrace", "Display backtrace infomation about the function call", mon_backtrace },
 };
 
 /***** Implementations of basic kernel monitor commands *****/
@@ -67,6 +68,9 @@ void
 do_overflow(void)
 {
     cprintf("Overflow success\n");
+	uint32_t retaddr = read_pretaddr();
+	*(uint32_t *)retaddr = 0xf01008f3;
+	return;
 }
 
 void
@@ -82,13 +86,12 @@ start_overflow(void)
     // hint: You can use the read_pretaddr function to retrieve 
     //       the pointer to the function call return address;
 
-    char str[256] = {};
-    int nstr = 0;
-    char *pret_addr;
+	uint32_t retaddr = read_pretaddr();
+	*(uint32_t *)retaddr = 0xf0100828;
+	return;
+
 
 	// Your code here.
-    
-
 
 }
 
@@ -107,14 +110,14 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 	while (ebp)
 	{
 		cprintf("eip %08x ebp %08x args %08x %08x %08x %08x %08x\n", *(uint32_t *)(ebp + 4), ebp, *(uint32_t *)(ebp + 8), *(uint32_t *)(ebp + 12), *(uint32_t *)(ebp + 16), *(uint32_t *)(ebp + 20), *(uint32_t *)(ebp + 24));
-//		struct Eipdebuginfo *info = {0};
-//		debuginfo_eip(*(uint32_t *)(ebp + 4), info);
-//		cprintf("	 %s:%d %s+%d\n", info->eip_file, info->eip_line, info->eip_fn_name, info->eip_fn_addr);
+		struct Eipdebuginfo info = {0};
+		debuginfo_eip(*(uint32_t *)(ebp + 4), &info);
+		cprintf("	 %s:%d %.*s+%d\n", info.eip_file, info.eip_line, info.eip_fn_namelen, info.eip_fn_name, *(uint32_t *)(ebp + 4) - info.eip_fn_addr);
 		ebp = *(uint32_t *)ebp;
 	}
 
 	overflow_me();
-    	cprintf("Backtrace success\n");
+    cprintf("Backtrace success\n");
 	return 0;
 }
 
