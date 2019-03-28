@@ -70,7 +70,7 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 		ebp = *(uint32_t *)ebp;
 	}
 
-	overflow_me();
+//	overflow_me();
     cprintf("Backtrace success\n");
 	return 0;
 }
