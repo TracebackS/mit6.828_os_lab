@@ -6,3 +6,8 @@
 
 2. 不需要。因为用户程序无权调用特权级为0的int指令，所以这会触发一个General Protection Exception，也就是trap 13。
 如果允许用户程序直接使用int指令，会导致系统安全受到威胁。
+
+3. 因为用户程序没有权限时，会触发General Protection Exception，而权限设置取决于IDT的设置。
+将其特权级设置成3即可正常工作，设置为0会触发General Protection Exception。
+
+4. 这些机制的关键之处就是限制用户态的权限，保护内核安全，同时使内核可以为用户提供服务。
