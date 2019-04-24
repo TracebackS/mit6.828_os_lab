@@ -285,7 +285,7 @@ page_fault_handler(struct Trapframe *tf)
 
 	// LAB 3: Your code here.
 
-	if (!(tf->tf_cs & 1))
+	if (!(tf->tf_cs & 3))
 	{
 		panic("page_fault_handler: page fault in kernel mode, address %d\n", fault_va);
 	}

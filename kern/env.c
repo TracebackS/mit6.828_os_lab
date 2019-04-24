@@ -379,6 +379,7 @@ load_icode(struct Env *e, uint8_t *binary)
 	struct Proghdr *ph, *eph;
 	ph = (struct Proghdr *)((uint8_t *)header + header->e_phoff);
 	eph = ph + header->e_phnum;
+	e->heap_top = 0;
 	for (; ph < eph; ph++)
 	{
 		if (ph->p_type == ELF_PROG_LOAD)
@@ -390,6 +391,8 @@ load_icode(struct Env *e, uint8_t *binary)
 			region_alloc(e, (void *)ph->p_va, ph->p_memsz);
 			memmove((void *)ph->p_va, binary + ph->p_offset, ph->p_filesz);
 			memset((void *)(ph->p_va + ph->p_filesz), 0, ph->p_memsz - ph->p_filesz);
+			uint32_t candidate_top = (uint32_t)(ph->p_va+ ph->p_memsz);
+			e->heap_top = e->heap_top > candidate_top ? e->heap_top : candidate_top;
 		}
 	}
 	region_alloc(e, (void *)(USTACKTOP - PGSIZE), PGSIZE);
