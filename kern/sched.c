@@ -31,6 +31,26 @@ sched_yield(void)
 
 	// LAB 4: Your code here.
 
+	struct Env *e = curenv;
+	int env_id = NENV - 1;
+	int start_id = 0;
+	if (e)
+	{
+		env_id = e - envs;
+		start_id = (env_id + 1) % NENV;
+	}
+	for (int i = start_id; i != env_id; i = (i + 1) % NENV)
+	{
+		if (envs[i].env_status == ENV_RUNNABLE)
+		{
+			env_run(&envs[i]);
+		}
+	}
+	if (e && e->env_status == ENV_RUNNING)
+	{
+		env_run(e);
+	}
+
 	// sched_halt never returns
 	sched_halt();
 }
@@ -76,7 +96,7 @@ sched_halt(void)
 		"pushl $0\n"
 		"pushl $0\n"
 		// Uncomment the following line after completing exercise 13
-		//"sti\n"
+		"sti\n"
 		"1:\n"
 		"hlt\n"
 		"jmp 1b\n"
