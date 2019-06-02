@@ -80,18 +80,29 @@ duppage(envid_t envid, unsigned pn)
 	int r;
 
 	// LAB 4: Your code here.
-	pte_t pte = uvpt[PGNUM(pn * PGSIZE)];
+	pte_t pte = uvpt[pn];
 	int perm = PTE_U | PTE_P;
+	if (pte & PTE_SHARE)
+	{
+		if ((r = sys_page_map(sys_getenvid(), (void *)(pn * PGSIZE), envid, (void *)(pn * PGSIZE), pte & PTE_SYSCALL)) < 0)
+		{
+			return r;
+		}
+		else
+		{
+			return 0;
+		}
+	}
 	if (pte & PTE_W || pte & PTE_COW)
 	{
 		perm |= PTE_COW;
 	}
-	if ((r = sys_page_map(0, (void *)(pn * PGSIZE), envid, (void *)(pn * PGSIZE), perm)) < 0)
+	if ((r = sys_page_map(thisenv->env_id, (void *)(pn * PGSIZE), envid, (void *)(pn * PGSIZE), perm)) < 0)
 	{
 		return r;
 	}
 	if ((pte & PTE_W || pte & PTE_COW)
-			&& (r = sys_page_map(0, (void *)(pn * PGSIZE), 0, (void *)(pn * PGSIZE), perm)) < 0)
+			&& (r = sys_page_map(thisenv->env_id, (void *)(pn * PGSIZE), thisenv->env_id, (void *)(pn * PGSIZE), perm)) < 0)
 	{
 		return r;
 	}
