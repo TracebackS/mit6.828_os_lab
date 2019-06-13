@@ -1,0 +1,13 @@
+Question 1:
+	当队列满时，output environment会重发，但是要sleep一会儿。
+
+Question 2:
+	yield一会儿，如果接收到了包，就停止yield。
+
+Question 3:
+	黑体标题“This file came from JOS.”
+	和一行滚动的小字"Cheesy web page!"。
+
+Question 4:
+	花了很久很久很久很久。
+	之前的lab一直使用软件源直接提供的最新版qemu，看到这次的lab需要使用指定版本，只得去下它编译。然后惊喜地发现，我的操作系统软件源只提供python3，不提供2，所以编译之前的configure跑不了。于是我只得去python官网找py2.7，然后更加惊喜地发现，mac和windows提供可执行文件，linux依然只能自己编译源码。。。。然后我为了编译Py，装了一堆包，又为了编译qemu，同样再装一堆。。。。仅做这些事情，就花了许多时间，而且这些时间都是在痛苦与绝望中度过的。
