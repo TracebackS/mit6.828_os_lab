@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/home/traceback/Code/OS/Python-2.7.16/python
 
 import os, re, threading, socket, time, shutil, struct, difflib
 try:

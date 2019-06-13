@@ -8,6 +8,15 @@ static struct E1000 *base;
 struct tx_desc *tx_descs;
 #define N_TXDESC (PGSIZE / sizeof(struct tx_desc))
 
+struct packet
+{
+	char body[2048];
+};
+
+struct packet pbuf[N_TXDESC] = {{{0}}};
+
+volatile void *e1000;
+
 int
 e1000_tx_init()
 {
@@ -46,7 +55,25 @@ pci_e1000_attach(struct pci_func *pcif)
 
 	e1000_tx_init();
 	e1000_rx_init();
-	return 0;
+	pci_func_enable(pcif);
+	for (int i = 0; i < N_TXDESC; i++)
+	{
+		memset(&tx_descs[i], 0, sizeof(tx_descs[i]));
+		tx_descs[i].addr = PADDR(&pbuf[i]);
+		tx_descs[i].status = E1000_TX_STATUS_DD;
+		tx_descs[i].cmd = E1000_TX_CMD_RS | E1000_TX_CMD_EOP;
+	}
+	e1000 = mmio_map_region(pcif->reg_base[0], pcif->reg_size[0]);
+	cprintf("status: 0x%lx\n", ((struct E1000 *)e1000)->STATUS);
+
+	((struct E1000 *)e1000)->TDBAL = PADDR(tx_descs);
+	((struct E1000 *)e1000)->TDBAH = 0;
+	((struct E1000 *)e1000)->TDLEN = N_TXDESC * sizeof(struct tx_desc);
+	((struct E1000 *)e1000)->TDH = 0;
+	((struct E1000 *)e1000)->TDT = 0;
+	((struct E1000 *)e1000)->TCTL = E1000_TCTL_EN | E1000_TCTL_PSP | E1000_TCTL_CT_ETHER | E1000_TCTL_COLD_FULL_DUPLEX;
+	((struct E1000 *)e1000)->TIPG = 10 | (8 << 10) | (12 << 20);
+	return 1;
 }
 
 int
