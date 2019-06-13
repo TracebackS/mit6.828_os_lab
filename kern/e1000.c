@@ -5,7 +5,7 @@
 
 static struct E1000 *base;
 
-struct tx_desc *tx_descs;
+struct tx_desc tx_descs[64];
 #define N_TXDESC (PGSIZE / sizeof(struct tx_desc))
 
 struct packet
@@ -13,9 +13,9 @@ struct packet
 	char body[2048];
 };
 
-struct packet pbuf[N_TXDESC] = {{{0}}};
+struct packet pbuf[64] = {{{0}}};
 
-volatile void *e1000;
+volatile uint32_t *e1000;
 
 int
 e1000_tx_init()
@@ -26,12 +26,21 @@ e1000_tx_init()
 
 	// Set hardward registers
 	// Look kern/e1000.h to find useful definations
+	for (int i = 0; i < 64; i++)
+	{
+		memset(&tx_descs[i], 0, sizeof(tx_descs[i]));
+		tx_descs[i].addr = PADDR(&pbuf[i]);
+		tx_descs[i].status = 1;
+		tx_descs[i].cmd = 9;
+	}
 
 	return 0;
 }
 
-struct rx_desc *rx_descs;
+struct rx_desc rx_descs[128];
 #define N_RXDESC (PGSIZE / sizeof(struct rx_desc))
+
+struct packet prbuf[128] = {{{0}}};
 
 int
 e1000_rx_init()
@@ -43,6 +52,12 @@ e1000_rx_init()
 
 	// Set hardward registers
 	// Look kern/e1000.h to find useful definations
+	for (int i = 0; i < 128; i++)
+	{
+		memset(&rx_descs[i], 0, sizeof(rx_descs[i]));
+		rx_descs[i].addr = PADDR(&prbuf[i]);
+		rx_descs[i].status = 0;
+	}
 
 	return 0;
 }
@@ -53,26 +68,30 @@ pci_e1000_attach(struct pci_func *pcif)
 	// Enable PCI function
 	// Map MMIO region and save the address in 'base;
 
+	pci_func_enable(pcif);
 	e1000_tx_init();
 	e1000_rx_init();
-	pci_func_enable(pcif);
-	for (int i = 0; i < N_TXDESC; i++)
-	{
-		memset(&tx_descs[i], 0, sizeof(tx_descs[i]));
-		tx_descs[i].addr = PADDR(&pbuf[i]);
-		tx_descs[i].status = E1000_TX_STATUS_DD;
-		tx_descs[i].cmd = E1000_TX_CMD_RS | E1000_TX_CMD_EOP;
-	}
 	e1000 = mmio_map_region(pcif->reg_base[0], pcif->reg_size[0]);
+	e1000[0xe00] = PADDR(tx_descs);
+	e1000[0xe01] = 0;
+	e1000[0xe02] = 64 * sizeof(struct tx_desc);
+	e1000[0xe04] = 0;
+	e1000[0xe06] = 0;
+	e1000[0x100] = 0x2 | 0x8 | (0xff0 & (0x10 << 4)) | (0x3ff000 & (0x40 << 12));
+	e1000[0x104] = 10 | (8 << 10) | (12 << 20);
+	e1000[0x1500] = QEMU_MAC_LOW;
+	e1000[0x1501] = QEMU_MAC_HIGH | 0x80000000;
+	memset((void *)&e1000[0x1480], 0, 512);
+	e1000[0x32] = 0;
+	e1000[0x34] = 0;
+	e1000[0xa00] = PADDR(rx_descs);
+	e1000[0xa01] = 0;
+	e1000[0xa02] = 64 * sizeof(struct rx_desc);
+	e1000[0xa04] = 0;
+	e1000[0xa06] = 64 - 1;
+	e1000[0x40] = 2 | 0 | 0x4000000 | 0x8000;
 	cprintf("status: 0x%lx\n", ((struct E1000 *)e1000)->STATUS);
 
-	((struct E1000 *)e1000)->TDBAL = PADDR(tx_descs);
-	((struct E1000 *)e1000)->TDBAH = 0;
-	((struct E1000 *)e1000)->TDLEN = N_TXDESC * sizeof(struct tx_desc);
-	((struct E1000 *)e1000)->TDH = 0;
-	((struct E1000 *)e1000)->TDT = 0;
-	((struct E1000 *)e1000)->TCTL = E1000_TCTL_EN | E1000_TCTL_PSP | E1000_TCTL_CT_ETHER | E1000_TCTL_COLD_FULL_DUPLEX;
-	((struct E1000 *)e1000)->TIPG = 10 | (8 << 10) | (12 << 20);
 	return 1;
 }
 
